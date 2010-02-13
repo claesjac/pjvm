@@ -1,0 +1,39 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+
+use Getopt::Long;
+
+use PJVM::ClassLoader;
+use PJVM::Decompiler;
+
+my @classpath;
+
+my %opts = (
+    "classpath=s" => \@classpath,
+);
+
+unless (GetOptions(%opts)) {
+    print "Usage:\n";
+    print "\tpjvm-decompile [options] class ...\n";
+    exit -1;
+}
+
+# Default to . for classpath
+@classpath = (".") unless @classpath;
+
+# Class loader
+my $cl = PJVM::ClassLoader->new({
+    classpath => \@classpath,
+});
+
+# Decompiler
+my $dc = PJVM::Decompiler->new({
+});
+
+for my $source (@ARGV) {
+    my $class = $cl->load_class($source);
+    
+    $dc->decompile($class);
+}

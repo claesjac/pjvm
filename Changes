@@ -1,0 +1,17 @@
+Revision history for Perl extension PJVM.
+
+0.01_03 Tue May 13
+    - Implemented basics of java/lang/Object
+    - More work on invocation
+    
+0.01_02 Mon May 12
+    - Added missing dependency for Test::Exception in Makefile.PL
+    - ClassLoader now correctly skips an extra item if it's extended.
+    - Laying out structure of execution backends
+    - Beginning of transformation from PJVM::Class (class def returned by loader) to 
+      PJVM::Runtime::Class which is the actual Class that we can execute.
+      
+0.01_01 Sat May 10 17:01:13 2008
+	- original version; created by h2xs 1.23 with options
+		-X -b 5.8.1 -n PJVM
+
