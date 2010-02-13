@@ -26,8 +26,12 @@ sub decompile {
     
     $output->do_package_decl($class);
     $output->do_imports($class);
-    
+        
     $output->do_class_open($class);
+
+    $output->do_field($class, $_) for @{$class->fields};
+    $output->do_fields_done() if @{$class->fields};
+
     $output->do_class_close($class);
     
     print $output->results, "\n";
