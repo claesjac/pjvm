@@ -113,7 +113,9 @@ sub do_fields_done {
 
 sub results {
     my $self = shift;
-    return ${$self->buffer};
+    my $output = ${$self->buffer};
+    $output =~ s/^(\t+)/"  " x length($1)/gme;
+    return $output;
 }
 
 1;

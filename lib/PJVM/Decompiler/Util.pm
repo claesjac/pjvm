@@ -39,6 +39,7 @@ sub to_java_access {
     $access .= "public "        if $flags & ACC_PUBLIC;
     $access .= "private "       if $flags & ACC_PRIVATE;
     $access .= "protected "     if $flags & ACC_PROTECTED;
+    $access .= "static"         if $flags & ACC_STATIC;
     $access .= "final "         if $flags & ACC_FINAL;
     $access .= "synchronized "  if $flags & ACC_SYNCHRONIZED;
     $access .= "volatile "      if $flags & ACC_VOLATILE;
