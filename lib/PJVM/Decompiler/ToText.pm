@@ -125,8 +125,8 @@ sub do_method {
     
     my $name = $method->name;
     $name = $class->name if $name eq "<init>";
+    
     $name = fix_reserved_java_word($name);
-
     my ($args_sig, $return_sig) = $method->signature =~ /^\((.*)\)(.*)$/;
     
     my $return;
@@ -140,10 +140,15 @@ sub do_method {
 
         $return = $return_name if exists $self->imports->{$type->[0]};
         $return .= "[]" x $type->[1];
+        $return .= " ";
     }
 
-    $self->io->print("\t", $access, $return, " ", $name, "(");
+    $return = "" if $name eq "<clinit>";
+    $name = "" if $name eq "<clinit>";
 
+    $self->io->print("\t", $access, $return, $name);
+
+    $self->io->print("(") if $name;
     my @args = PJVM::Types->decode_signature($args_sig);
     my $cnt = 0;
     $self->io->print(join ", ", map {
@@ -158,8 +163,8 @@ sub do_method {
         "$arg_type pArg${cnt}";
     } @args);
     
-    $self->io->print(")");
-    $self->io->print(" {\n");
+    $self->io->print(") ") unless $name eq "";
+    $self->io->print("{\n");
     $self->io->print("\t}\n\n");
 }
 
