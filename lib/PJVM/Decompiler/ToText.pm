@@ -97,7 +97,6 @@ sub do_field {
     my $type = (PJVM::Types->decode_signature($field->signature))[0];
     
     my ($ref_pkg, $name) = to_java_pkg_and_name($type->[0]);
-    $name = fix_reserved_java_word($name);
     my $signature = 
         $my_pkg eq $ref_pkg || $ref_pkg eq "java.lang" ? 
         $name : "${ref_pkg}.${name}";
@@ -127,9 +126,41 @@ sub do_method {
     my $name = $method->name;
     $name = $class->name if $name eq "<init>";
     $name = fix_reserved_java_word($name);
-    $self->io->print("\t", $access, $name, "(");
+
+    my ($args_sig, $return_sig) = $method->signature =~ /^\((.*)\)(.*)$/;
+    
+    my $return;
+    {
+        my $type = (PJVM::Types->decode_signature($return_sig))[0];
+    
+        my ($ref_pkg, $return_name) = to_java_pkg_and_name($type->[0]);
+        $return = 
+            $my_pkg eq $ref_pkg || $ref_pkg eq "java.lang" ? 
+            $return_name : "${ref_pkg}.${return_name}";
+
+        $return = $return_name if exists $self->imports->{$type->[0]};
+        $return .= "[]" x $type->[1];
+    }
+
+    $self->io->print("\t", $access, $return, " ", $name, "(");
+
+    my @args = PJVM::Types->decode_signature($args_sig);
+    my $cnt = 0;
+    $self->io->print(join ", ", map {
+        my ($ref_pkg, $arg_name) = to_java_pkg_and_name($_->[0]);
+        my $arg_type = 
+            $my_pkg eq $ref_pkg || $ref_pkg eq "java.lang" ? 
+            $arg_name : "${ref_pkg}.${arg_name}";
+
+        $arg_type = $arg_name if exists $self->imports->{$_->[0]};
+        $arg_type .= "[]" x $_->[1];
+        $cnt++;
+        "$arg_type pArg${cnt}";
+    } @args);
+    
     $self->io->print(")");
     $self->io->print(" {\n");
+    $self->io->print("\t}\n\n");
 }
 
 sub do_methods_done {
