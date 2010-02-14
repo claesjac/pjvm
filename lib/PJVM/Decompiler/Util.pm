@@ -9,7 +9,7 @@ require Exporter;
 
 our @ISA = qw(Exporter);
 
-our @EXPORT = qw(to_java_pkg_and_name to_java_fqcn to_java_access);
+our @EXPORT = qw(to_java_pkg_and_name to_java_fqcn to_java_access fix_reserved_java_word);
 our @EXPORT_OK = @EXPORT;
 
 sub to_java_pkg_and_name {
@@ -57,6 +57,28 @@ sub to_java_access {
     chomp $access;
 
     return $access;
+}
+
+{
+    my %reserved = map {
+        $_ => "_${_}"
+    } qw(
+        abstract    continue    for             new         switch
+        assert      default     goto            package     synchronized
+        boolean     do          if              private     this
+        break       double      implements      protected   throw
+        byte        else        import          public      throws
+        case        enum        instanceof      return      transient
+        catch       extends     int             short       try
+        char        final       interface       static      void
+        class       finally     long            strictfp    volatile
+        const       float       native          super       while
+    );
+
+    sub fix_reserved_java_word {
+        my $name = shift;
+        return exists $reserved{$name} ? $reserved{$name} : $name;
+    }
 }
 
 1;

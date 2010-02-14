@@ -32,6 +32,9 @@ sub decompile {
     $output->do_field($class, $_) for @{$class->fields};
     $output->do_fields_done() if @{$class->fields};
 
+    $output->do_method($class, $_) for @{$class->methods};
+    $output->do_methods_done() if @{$class->methods};
+    
     $output->do_class_close($class);
     
     print $output->results, "\n";

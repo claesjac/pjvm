@@ -89,24 +89,50 @@ sub do_class_close {
 sub do_field {
     my ($self, $class, $field) = @_;
     
-    my ($my_pkg, $name) = to_java_pkg_and_name($class->name);
+    my ($my_pkg, undef) = to_java_pkg_and_name($class->name);
 
     my $access = to_java_access($field->access_flags);
     $access .= " " if $access;
 
     my $type = (PJVM::Types->decode_signature($field->signature))[0];
     
-    my ($ref_pkg, $type_name) = to_java_pkg_and_name($type->[0]);
+    my ($ref_pkg, $name) = to_java_pkg_and_name($type->[0]);
+    $name = fix_reserved_java_word($name);
     my $signature = 
         $my_pkg eq $ref_pkg || $ref_pkg eq "java.lang" ? 
-        $type_name : "${ref_pkg}.${type_name}";
-    $signature = $type_name if exists $self->imports->{$type->[0]};
+        $name : "${ref_pkg}.${name}";
+    $signature = $name if exists $self->imports->{$type->[0]};
     $signature .= "[]" x $type->[1];
 
-    $self->io->print("\t", $access, $signature, " ", $field->name, ";\n");
+    $self->io->print("\t", $access, $signature, " ", fix_reserved_java_word($field->name), ";\n");
 }
 
 sub do_fields_done {
+    my $self = shift;
+    $self->io->print("\n");
+}
+
+sub do_method {
+    my ($self, $class, $method) = @_;
+    
+    my ($my_pkg, undef) = to_java_pkg_and_name($class->name);
+    
+    my $access = to_java_access($method->access_flags, qw(
+        public protected private
+        abstract static final
+        synchronized native strictfp));
+
+    $access .= " " if $access;
+    
+    my $name = $method->name;
+    $name = $class->name if $name eq "<init>";
+    $name = fix_reserved_java_word($name);
+    $self->io->print("\t", $access, $name, "(");
+    $self->io->print(")");
+    $self->io->print(" {\n");
+}
+
+sub do_methods_done {
     my $self = shift;
     $self->io->print("\n");
 }
