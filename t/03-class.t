@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 
-use Test::More tests => 17;
+use Test::More tests => 25;
 use Test::Exception;
 
 use PJVM::ClassLoader;
@@ -18,30 +18,45 @@ is_deeply([$class->interfaces], ["java/lang/Cloneable"]);
 
 # Fields
 my $fields = $class->fields;
-is (scalar @$fields, 3);
-my @fields = sort { $a->signature cmp $b->signature } @$fields;
+is (scalar @$fields, 5);
+my @fields = sort { $a->name cmp $b->name } @$fields;
 my $field = shift @fields;
-is($field->name, "static_field1");
-is($field->signature, "I");
+is($field->name, "bar");
+is($field->signature, "Lfoo/bar/quax;");
 $field = shift @fields;
 is($field->name, "field1");
 is($field->signature, "I");
 $field = shift @fields;
 is($field->name, "field2");
 is($field->signature, "Ljava/lang/Object;");
+$field = shift @fields;
+is($field->name, "field3");
+is($field->signature, "[Ljava/lang/Object;");
+$field = shift @fields;
+is($field->name, "static_field1");
+is($field->signature, "I");
 
 # Methods
 my $methods = $class->methods;
-is (scalar @$methods, 3);
-my @methods = sort { $a->signature cmp $b->signature } @$methods;
+is (scalar @$methods, 5);
+my @methods = sort { $a->name cmp $b->name } @$methods;
 
 my $method = shift @methods;
-is($method->name, "calc");
-is($method->signature, "()I");
+is($method->name, "<clinit>");
+is($method->signature, "()V");
 
 $method = shift @methods;
 is($method->name, "<init>");
 is($method->signature, "()V");
+
+$method = shift @methods;
+is($method->name, "calc");
+is($method->signature, "()I");
+
+$method = shift @methods;
+is($method->name, "decodeException");
+is($method->signature, "(LFooException;)V");
+
 
 $method = shift @methods;
 is($method->name, "main");
