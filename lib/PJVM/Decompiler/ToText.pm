@@ -163,9 +163,48 @@ sub do_method {
         "$arg_type pArg${cnt}";
     } @args);
     
-    $self->io->print(") ") unless $name eq "";
-    $self->io->print("{\n");
+    $self->io->print(")") unless $name eq "";
+    
+    # Check what exceptions we throw
+    my @exceptions = grep { $_->isa("PJVM::Class::Attribute::Exceptions") } @{$method->attributes};
+    my %exceptions;
+    for my $ex (@exceptions) {
+        for my $ex_type (map { 
+            my $name_index = $class->constant_pool->get($_)->name_index;
+            $class->constant_pool->get($name_index)->value;
+         } @{$ex->exceptions_index_table}) {
+             $exceptions{$ex_type} = 1 
+         }
+    }
+    if (%exceptions) {
+        $self->io->print(" throws ");
+        my $ex = "";
+        for my $ex_type (sort keys %exceptions) {
+            my ($ref_pkg, $ex_name) = to_java_pkg_and_name($ex_type);
+            $ex_type = 
+                $my_pkg eq $ref_pkg || $ref_pkg eq "java.lang" ? 
+                $ex_name : "${ref_pkg}.${ex_name}";
+
+            $ex_type = $ex_name if exists $self->imports->{$ex_type};
+            $ex .= ", " if $ex;
+            $ex .= $ex_type;
+        }
+        $self->io->print($ex);
+    }
+
+    $self->io->print(" {\n");
+    
+    if ($method->code) {
+        $self->do_method_implementation($class, $method);
+    }
+    
     $self->io->print("\t}\n\n");
+}
+
+sub do_method_implementation {
+    my ($self, $class, $method) = @_;
+    
+    my $bc = $method->bytecode;
 }
 
 sub do_methods_done {
@@ -176,6 +215,7 @@ sub do_methods_done {
 sub results {
     my $self = shift;
     my $output = ${$self->buffer};
+    $output =~ s/ +/ /gm;
     $output =~ s/^(\t+)/"  " x length($1)/gme;
     return $output;
 }
