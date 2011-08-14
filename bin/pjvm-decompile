@@ -9,9 +9,11 @@ use PJVM::ClassLoader;
 use PJVM::Decompiler;
 
 my @classpath;
+my $output;
 
 my %opts = (
     "classpath=s" => \@classpath,
+    "output=s" => \$output,
 );
 
 unless (GetOptions(%opts)) {
@@ -30,10 +32,10 @@ my $cl = PJVM::ClassLoader->new({
 
 # Decompiler
 my $dc = PJVM::Decompiler->new({
+    output => $output,
 });
 
 for my $source (@ARGV) {
-    my $class = $cl->load_class($source);
-    
+    my $class = $cl->load_class($source);    
     $dc->decompile($class);
 }

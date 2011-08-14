@@ -1,4 +1,4 @@
-package PJVM::Decompiler::ToText;
+package PJVM::Decompiler::Java;
 
 use strict;
 use warnings;

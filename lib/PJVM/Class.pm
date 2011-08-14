@@ -20,6 +20,8 @@ use Object::Tiny qw(
     attributes
 );
 
+*cp = \&constant_pool;
+
 sub new_from_io {
     my ($pkg, $io) = @_;
     

@@ -1,9 +1,11 @@
 package PJVM::Decompiler;
 
+use 5.010;
+
 use strict;
 use warnings;
 
-use PJVM::Decompiler::ToText;
+use Module::Load qw();
 
 use Object::Tiny qw(output_class);
 
@@ -12,37 +14,24 @@ sub new {
     
     $args = {} unless ref $args eq "HASH";
     
+    my $output_class = "PJVM::Decompiler::" . ($args->{output} // "Java");
+    
+    Module::Load::load $output_class;
+    
     my $self = bless {
-        output_class => "PJVM::Decompiler::ToText",
+        output_class => $output_class
     }, $class;
 
     return $self;
 }
 
 sub decompile {
-    my ($self, $class) = @_;
+    my ($self, @classes) = @_;
     
-    my $output = $self->output_class->new();
-    
-    $output->do_package_decl($class);
-    $output->do_imports($class);
-        
-    $output->do_class_open($class);
-
-    $output->do_field($class, $_) for @{$class->fields};
-    $output->do_fields_done() if @{$class->fields};
-
-    # Output in asciibetical sort order
-    my @methods = sort {
-        $a->name cmp $b->name
-    } @{$class->methods};
-    $output->do_method($class, $_) for @methods;
-    
-    $output->do_methods_done() if @{$class->methods};
-    
-    $output->do_class_close($class);
-    
-    print $output->results, "\n";
+    for my $class (@classes) {
+        my $output = $self->output_class->decompile($class);
+        say $output;
+    }
 }
 
 1;
