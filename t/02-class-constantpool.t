@@ -17,5 +17,5 @@ seek $io, 8, 0;
 
 my $pool = PJVM::Class::ConstantPool->new_from_io($io);
 isa_ok($pool, "PJVM::Class::ConstantPool");
-is($pool->length, 25);
+is($pool->length, 51);
 
