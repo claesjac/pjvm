@@ -1,6 +1,6 @@
 package PJVM::Decompiler::Perl;
 
-use 5.010;
+use 5.014;
 
 use strict;
 use warnings;
@@ -63,10 +63,21 @@ sub decompile {
         }
     }
     
+    # Methods
+    my @methods = sort { $a->name cmp $b->name } @{$class->methods};
+    for my $method (@methods) {
+        # Skip constructors and class initialisation methods
+        next if $method->name =~ /^<(cl)?init>$/;
+        $io->say("");
+        $io->say("sub ", $method->name, " {");
+        $self->_decompile_method_body($class, $method);
+        $io->say("}");
+    }
+    
     # Run this
     my $clinit = $class->method("<clinit>", "()V");
     if ($clinit) {
-        $io->say("\n");
+        $io->say("");
         $io->say("{");
         $self->_decompile_method_body($class, $clinit);
         $io->say("}");
@@ -75,25 +86,44 @@ sub decompile {
     return $self->results;
 }
 
-sub _decompile_method_body {
-    my ($self, $class, $method) = @_;
+sub _decompile_bytecode {
+    my ($self, $class, $method, $stack, $bytecode) = @_;
 
     my $io = $self->io;
-    
-    my @bytecode = @{PJVM::Bytecode::Reader->read($method->bytecode)};
-    
-    my @stack;
-    while (@bytecode) {
-        my $next = shift @bytecode;
+
+    while (@$bytecode) {
+        my $next = shift @$bytecode;
         next unless $next;
         my ($op, @data) = @$next;
-        if ($op == JVM_OP_getstatic) {
+        if ($op == JVM_OP_aload_0) {
+            push $stack, '$this';
+        }
+        elsif ($op == JVM_OP_bipush) {
+            push $stack, $data[0];
+        }
+        elsif ($op == JVM_OP_if_icmpne) {
+            my $op2 = pop $stack;
+            my $op1 = pop $stack;
+            $io->say("if ($op1 != $op2) {");
+        }
+        elsif ($op == JVM_OP_if_icmple) {
+            my $op2 = pop $stack;
+            my $op1 = pop $stack;
+            $io->say("if ($op1 <= $op2) {")
+        }
+        elsif ($op == JVM_OP_getfield) {
+            my $field = $class->cp->get($data[0]);
+            my $target_class = $class->cp->get($field->class_index);
+            my $target_field = $class->cp->get($field->name_and_type_index);
+            $stack->[-1] .= '->{' . $class->cp->get($target_field->name_index)->value . '}';
+        }
+        elsif ($op == JVM_OP_getstatic) {
             my $field = $class->cp->get($data[0]);
             my $target_class = $class->cp->get($field->class_index);
             my $var = '$' . _to_package_name($class->cp->get($target_class->name_index)->value);
             my $target_method = $class->cp->get($field->name_and_type_index);
             $var .= "::" . $class->cp->get($target_method->name_index)->value;
-            push @stack, $var;
+            push $stack, $var;
         }
         elsif ($op == JVM_OP_invokevirtual) {
             my $field = $class->cp->get($data[0]);
@@ -101,9 +131,9 @@ sub _decompile_method_body {
             $io->print(_to_package_name($class->cp->get($target_class->name_index)->value));
             my $target_method = $class->cp->get($field->name_and_type_index);
             $io->print("::", $class->cp->get($target_method->name_index)->value);
-            $io->print("(", join(", ", @stack), ")");
+            $io->print("(", join(", ", @$stack), ")");
             $io->say(";");
-            @stack = ();
+            $stack = [];
         }
         elsif ($op == JVM_OP_ldc) {
             my $value_ref = $class->cp->get($data[0]);
@@ -114,17 +144,26 @@ sub _decompile_method_body {
             else {
                 $value = $value_ref->value;
             }
-            push @stack, $value;
+            push $stack, $value;
         }
         elsif ($op == JVM_OP_return) {
-            if (@stack) {
-                $io->say("return ", pop @stack);
+            if (@$stack) {
+                $io->say("return ", pop $stack);
             }
         }
         else {
             $io->say(opcode_to_mnemonic($op));
         }
-    }
+    }    
+}
+
+sub _decompile_method_body {
+    my ($self, $class, $method) = @_;
+    
+    my @bytecode = @{PJVM::Bytecode::Reader->read($method->bytecode)};
+    my @stack;
+    
+    $self->_decompile_bytecode($class, $method, \@stack, \@bytecode);
 }
 
 sub _to_package_name {
