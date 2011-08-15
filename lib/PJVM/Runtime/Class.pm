@@ -73,7 +73,7 @@ sub new_from_spec {
     $self->{static_fields_value}         = {};
     for my $name (keys %fields) {
         next unless $fields_access{$name} & ACC_STATIC;
-        my $default = $fieldsPJVM::Types->default_value_for_signature($fields{$name});
+        my $default = PJVM::Types->default_value_for_signature($fields{$name});
         $self->{static_fields_value}->{$name} = $default;
     }
     

@@ -120,20 +120,34 @@ sub compile {
                 # what type you expect
             }
             elsif ($op == JVM_OP_dup_x2) { splice @stack, -2, 0, @stack[-2, -1]; }
+            elsif ($op == JVM_OP_ldc2_w) {
+                my ($i1, $i2) = ($bc->[$pc++], $bc->[$pc++]);
+                my $ix = $i1 << 8 | $i2;
+                my $pi = $this->class->cp->[$ix];
+                push @stack, $pi->value;                
+            }
             elsif ($op == JVM_OP_getstatic) {
                 my $cp = $this->class->cp; # constant pool
                 my ($i1, $i2) = ($bc->[$pc++], $bc->[$pc++]);
                 my $ix = $i1 << 8 | $i2;
                 my $pi = $cp->[$ix];
                 my $class = $cp->[$cp->[$pi->class_index]->name_index]->value;
-                my $field = $cp->[$cp->[$pi->name_and_type_index]->name_index]->value;
-                print STDERR Dumper($field);
+                my $field = $cp->[$cp->[$pi->name_and_type_index]->name_index]->value;            
                 push @stack, $rt->get_class($class)->class->get_field_value($field);
                 print STDERR Dumper(\@stack);
             }
+            elsif ($op >= JVM_OP_fconst_0 && $op <= JVM_OP_fconst_2) {
+                push @stack, $op - JVM_OP_fconst_0 + 0.0;
+            }
+            elsif ($op == JVM_OP_nop) {
+                # do nothing
+            }
+            elsif ($op == JVM_OP_return) {
+                return;
+            }
             else {
                 die "No implementation for ", opcode_to_mnemonic($op), "\n";
-            }
+            }            
         };
     }
 }

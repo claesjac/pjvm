@@ -91,8 +91,9 @@ sub _decompile_bytecode {
 
     my $io = $self->io;
 
-    while (@$bytecode) {
-        my $next = shift @$bytecode;
+    my $pc = 0;
+    while ($pc < @$bytecode) {
+        my $next = $bytecode->[$pc++];
         next unless $next;
         my ($op, @data) = @$next;
         if ($op == JVM_OP_aload_0) {
@@ -109,7 +110,15 @@ sub _decompile_bytecode {
         elsif ($op == JVM_OP_if_icmple) {
             my $op2 = pop $stack;
             my $op1 = pop $stack;
-            $io->say("if ($op1 <= $op2) {")
+            $io->say("if ($op1 <= $op2) {")            
+        }
+        elsif ($op == JVM_OP_new) {
+            my $type = $class->cp->get($data[0]);
+            my $target_class = $class->cp->get($type->name_index)->value;
+            $io->say(_to_package_name($target_class), "->new()");
+#            my $target_method = $class->cp->get($field->name_and_type_index);
+ #           $var .= "::" . $class->cp->get($target_method->name_index)->value;
+            
         }
         elsif ($op == JVM_OP_getfield) {
             my $field = $class->cp->get($data[0]);
